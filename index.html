@@ -9,8 +9,8 @@
   --bg:#f2f2f5; --card:#ffffff; --text:#1c1c1e; --muted:#6e6e73; --line:#dcdce1;
   --accent:#0a6cff; --accent-soft:#e6f0ff; --host:#a85500;
   --err:#d70015; --err-soft:#ffecee; --ok:#1a7f37;
-  --sans:"Segoe UI","Microsoft JhengHei",system-ui,sans-serif;
-  --mono:Consolas,"Cascadia Mono","Courier New",monospace;
+  --sans:"Segoe UI",-apple-system,"PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --mono:Consolas,"Cascadia Mono",ui-monospace,Menlo,"SF Mono",monospace;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
@@ -42,7 +42,7 @@ h1{font-size:30px;font-weight:800;margin:0 0 14px;text-align:left}
 .pfx button{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--card);font-size:20px;line-height:1;cursor:pointer}
 .pfx button:hover{border-color:var(--accent);color:var(--accent)}
 .slash{font-size:44px;font-weight:700;color:var(--muted)}
-.pfxin{width:3.2ch;font-size:44px;border:0;border-bottom:2px solid transparent;background:transparent;font-weight:800;text-align:center;outline:none;-moz-appearance:textfield}
+.pfxin{width:1.6em;padding:0;line-height:1.1;-webkit-appearance:none;appearance:textfield;font-size:44px;border:0;border-bottom:2px solid transparent;background:transparent;font-weight:800;text-align:center;outline:none;-moz-appearance:textfield}
 .pfxin::-webkit-inner-spin-button,.pfxin::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .pfxin:focus{border-bottom-color:var(--accent)}
 input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer}
@@ -90,12 +90,26 @@ details.bin summary{cursor:pointer;font-weight:600;padding:6px 0}
 .opts{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);display:flex;gap:8px 18px;justify-content:center;flex-wrap:wrap;align-items:center}
 .opts label{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
 .opts select{border:1px solid var(--line);border-radius:6px;background:var(--card);padding:2px 6px;font-size:13px}
+.binscroll{overflow-x:auto}
+
+/* 手機（窄螢幕）：字級跟著螢幕寬度縮，避免被切到 */
+@media (max-width:480px){
+  .wrap{padding:20px 16px 32px}
+  h1{font-size:26px;margin-bottom:10px}
+  .slash,.pfxin{font-size:40px}
+  .pfx{margin-top:16px}
+  .big{font-size:clamp(26px,9vw,38px)}
+  .stats .big{font-size:clamp(22px,7vw,30px)}
+  .list{font-size:17px;gap:8px 12px}
+  .bt{font-size:12px}
+  .bt td:first-child{font-size:12px;padding-right:8px}
+}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>IPv4</h1>
-  <input class="ipin" id="ip" spellcheck="false" autocomplete="off" placeholder="IP Address（例：192.168.1.25/24）" aria-label="IP 位址，可帶遮罩">
+  <input class="ipin" id="ip" spellcheck="false" autocomplete="off" placeholder="例：192.168.1.25/24" autocapitalize="off" autocorrect="off" aria-label="IP 位址，可帶遮罩">
   <div class="msg" id="msg"></div>
   <div class="pfx">
     <button data-step="-1" title="遮罩少 1 位元">−</button>
@@ -124,7 +138,7 @@ details.bin summary{cursor:pointer;font-weight:600;padding:6px 0}
       <button class="cbtn" data-copy="acl">複製 ACL 寫法 <code data-o="acl"></code></button>
     </div>
     <div class="role" id="role"></div>
-    <details class="bin" id="bin"><summary>二進位對照</summary><div id="binTable"></div></details>
+    <details class="bin" id="bin"><summary>二進位對照</summary><div id="binTable" class="binscroll"></div></details>
   </div>
 
   <div class="opts">
