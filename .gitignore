@@ -1,0 +1,5 @@
+# 只公開網頁本體與說明；截圖、樣本、規格留在本機
+*
+!.gitignore
+!index.html
+!README.md

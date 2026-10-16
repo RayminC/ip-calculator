@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IP 計算機</title>
+<style>
+:root{
+  --bg:#f2f2f5; --card:#ffffff; --text:#1c1c1e; --muted:#6e6e73; --line:#dcdce1;
+  --accent:#0a6cff; --accent-soft:#e6f0ff; --host:#a85500;
+  --err:#d70015; --err-soft:#ffecee; --ok:#1a7f37;
+  --sans:"Segoe UI","Microsoft JhengHei",system-ui,sans-serif;
+  --mono:Consolas,"Cascadia Mono","Courier New",monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1c1c1e; --card:#2a2a2d; --text:#f2f2f7; --muted:#a1a1a8; --line:#3d3d42;
+    --accent:#5aa2ff; --accent-soft:#1d2f4d; --host:#f0a050;
+    --err:#ff6b6b; --err-soft:#3d1c1f; --ok:#4ac26b;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1c1c1e; --card:#2a2a2d; --text:#f2f2f7; --muted:#a1a1a8; --line:#3d3d42;
+  --accent:#5aa2ff; --accent-soft:#1d2f4d; --host:#f0a050;
+  --err:#ff6b6b; --err-soft:#3d1c1f; --ok:#4ac26b;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+.num{font-variant-numeric:tabular-nums}
+
+.wrap{max-width:560px;margin:0 auto;padding:28px 16px 40px;text-align:center}
+h1{font-size:30px;font-weight:800;margin:0 0 14px;text-align:left}
+.ipin{width:100%;font-family:var(--mono);font-size:22px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);outline:none}
+.ipin:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.ipin.err{border-color:var(--err);box-shadow:0 0 0 3px var(--err-soft)}
+.msg{min-height:22px;font-size:14px;margin-top:4px;text-align:left}
+.msg.err{color:var(--err)} .msg.wait{color:var(--muted)} .msg.note{color:var(--accent)}
+
+.pfx{display:flex;align-items:center;justify-content:center;gap:10px;margin:22px 0 6px}
+.pfx button{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--card);font-size:20px;line-height:1;cursor:pointer}
+.pfx button:hover{border-color:var(--accent);color:var(--accent)}
+.slash{font-size:44px;font-weight:700;color:var(--muted)}
+.pfxin{width:3.2ch;font-size:44px;border:0;border-bottom:2px solid transparent;background:transparent;font-weight:800;text-align:center;outline:none;-moz-appearance:textfield}
+.pfxin::-webkit-inner-spin-button,.pfxin::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.pfxin:focus{border-bottom-color:var(--accent)}
+input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer}
+
+.badge{display:none;font-size:13px;padding:3px 10px;border-radius:999px;margin:16px auto 0;width:fit-content}
+.badge.ex{display:block;background:var(--accent-soft);color:var(--accent)}
+.badge.stale{display:block;background:var(--err-soft);color:var(--err)}
+.is-stale .res > :not(.badge){opacity:.35}
+.is-stale .res .val,.is-stale .res .cbtn{pointer-events:none}
+
+.blk{margin-top:22px}
+.blk .lbl{font-size:16px;font-weight:600}
+.big{font-size:38px;font-weight:800;display:inline-block}
+.stats{display:flex;justify-content:space-around;margin-top:26px}
+.stats .lbl{color:var(--muted);font-size:14px}
+.stats .big{font-size:30px}
+.list{display:grid;grid-template-columns:auto 1fr;gap:10px 16px;margin-top:28px;font-size:19px;text-align:left}
+.list .v{text-align:right}
+.list .val{display:inline-block}
+.acl{margin-top:20px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.role{font-size:14px;color:var(--muted);margin-top:12px}
+.role.warn{color:var(--host);font-weight:600}
+body.no-classic .classic{display:none !important}
+
+.val{position:relative;cursor:pointer;border-radius:6px;padding:0 4px;margin:0 -4px;outline:none}
+.val:hover{background:var(--accent-soft)}
+.val:focus-visible{box-shadow:0 0 0 2px var(--accent)}
+.cbtn{position:relative;border:1px solid var(--line);background:var(--card);border-radius:8px;padding:4px 10px;font-size:13px;cursor:pointer;white-space:nowrap}
+.cbtn:hover{border-color:var(--accent);color:var(--accent)}
+.cbtn code{font-family:var(--mono)}
+.val.copied::after,.cbtn.copied::after{content:"已複製 ✓";position:absolute;left:50%;top:-26px;transform:translateX(-50%);background:var(--ok);color:#fff;font:600 12px var(--sans);padding:2px 8px;border-radius:6px;white-space:nowrap;pointer-events:none}
+
+details.bin{margin-top:22px;text-align:left}
+details.bin summary{cursor:pointer;font-weight:600;padding:6px 0}
+.bt{font-family:var(--mono);font-size:15px;border-collapse:collapse;margin-top:6px}
+.bt td{padding:4px 10px 4px 0;white-space:nowrap}
+.bt td:first-child{color:var(--muted);font-family:var(--sans);font-size:13px;padding-right:14px}
+.bits .n{color:var(--accent);font-weight:700}
+.bits .h{color:var(--host)}
+.bits .cut{display:inline-block;width:2px;height:1.1em;background:var(--text);vertical-align:-3px;margin:0 3px;border-radius:1px}
+.bits .dot{color:var(--muted)}
+.legend{font-size:13px;color:var(--muted);margin-top:8px;display:flex;gap:6px 16px;flex-wrap:wrap}
+.legend .n{color:var(--accent);font-weight:700}.legend .h{color:var(--host);font-weight:700}
+
+.opts{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);display:flex;gap:8px 18px;justify-content:center;flex-wrap:wrap;align-items:center}
+.opts label{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.opts select{border:1px solid var(--line);border-radius:6px;background:var(--card);padding:2px 6px;font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>IPv4</h1>
+  <input class="ipin" id="ip" spellcheck="false" autocomplete="off" placeholder="IP Address（例：192.168.1.25/24）" aria-label="IP 位址，可帶遮罩">
+  <div class="msg" id="msg"></div>
+  <div class="pfx">
+    <button data-step="-1" title="遮罩少 1 位元">−</button>
+    <span class="slash">/</span><input class="pfxin num" id="pfx" type="number" min="0" max="32" aria-label="遮罩位元數">
+    <button data-step="1" title="遮罩多 1 位元">＋</button>
+  </div>
+  <input type="range" id="rng" min="0" max="32" aria-label="遮罩位元數滑桿">
+
+  <div class="res">
+    <div class="badge" id="badge"></div>
+    <div class="blk"><div class="lbl">Subnet mask</div><div class="big val num" data-o="mask" tabindex="0"></div></div>
+    <div class="blk"><div class="lbl">Wildcard</div><div class="big val num" data-o="wc" tabindex="0"></div></div>
+    <div class="stats num">
+      <div><div class="lbl">Hosts</div><div class="big val" data-o="hosts" tabindex="0"></div></div>
+      <div class="classic"><div class="lbl">Subnets</div><div class="big" data-o="subnets"></div></div>
+      <div class="classic"><div class="lbl">Class</div><div class="big" data-o="cls"></div></div>
+    </div>
+    <div class="list num">
+      <span>Network address</span><span class="v"><span class="val" data-o="net" tabindex="0"></span></span>
+      <span>First address</span><span class="v"><span class="val" data-o="first" tabindex="0"></span></span>
+      <span>Last address</span><span class="v"><span class="val" data-o="last" tabindex="0"></span></span>
+      <span>Broadcast address</span><span class="v"><span class="val" data-o="bc" tabindex="0"></span></span>
+    </div>
+    <div class="acl">
+      <button class="cbtn" data-copy="cidr">複製 <code data-o="cidr"></code></button>
+      <button class="cbtn" data-copy="acl">複製 ACL 寫法 <code data-o="acl"></code></button>
+    </div>
+    <div class="role" id="role"></div>
+    <details class="bin" id="bin"><summary>二進位對照</summary><div id="binTable"></div></details>
+  </div>
+
+  <div class="opts">
+    <span>顯示設定</span>
+    <label><input type="checkbox" id="optClassic"> Class／Subnets</label>
+    <label><input type="checkbox" id="optBin"> 二進位預設展開</label>
+    <label>主題 <select id="optTheme"><option value="system">跟隨系統</option><option value="light">淺色</option><option value="dark">深色</option></select></label>
+  </div>
+</div>
+
+<script>
+// ==CALC START==
+const ALL = 0xFFFFFFFF;
+function maskOf(p){ return p === 0 ? 0 : (ALL << (32 - p)) >>> 0; }
+function prefixOf(v){ for (let p = 0; p <= 32; p++) if (maskOf(p) === v) return p; return -1; }
+function toIp(n){ return [n >>> 24, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.'); }
+
+// 解析 IPv4：回傳 {v} 或 {err}（確定錯）或 {wait}（還沒打完）
+function parseIp(s){
+  const parts = s.split('.');
+  if (parts.length > 4) return { err: 'IP 只能有 4 段' };
+  for (let i = 0; i < parts.length; i++){
+    const t = parts[i];
+    if (t === '') continue;
+    if (!/^\d+$/.test(t)) return { err: `第 ${i + 1} 段不是數字` };
+    if (t.length > 3 || +t > 255) return { err: `第 ${i + 1} 段 ${t} 超過 255` };
+  }
+  for (let i = 0; i < parts.length; i++){
+    if (parts[i] === '' && i < parts.length - 1) return { err: `第 ${i + 1} 段是空的` };
+  }
+  if (parts.length < 4 || parts[3] === '') return { wait: '還沒打完：IP 要 4 段' };
+  return { v: parts.reduce((a, t) => a * 256 + Number(t), 0) };
+}
+
+// 解析整個輸入框：IP、IP/24、IP 255.255.255.0、IP 0.0.0.255（萬用遮罩）
+function parseInput(text){
+  const t = text.trim();
+  if (!t) return { empty: true };
+  if (/[^0-9.\/\s]/.test(t)) return { err: '只能輸入數字、點、斜線或空格' };
+  const m = t.split(/\s*\/\s*|\s+/);
+  if (m.length > 2) return { err: '格式：IP、IP/24 或 IP 255.255.255.0' };
+  const ip = parseIp(m[0]);
+  if (ip.err || ip.wait) return ip;
+  if (m.length === 2 && m[1] === '') return { wait: '還沒打完：/ 後面要接遮罩' };
+  if (m.length === 1) return { ip: ip.v, prefix: null };
+  const s = m[1];
+  if (/^\d+$/.test(s)){
+    if (+s > 32) return { err: `遮罩位元數 /${s} 超過 32` };
+    return { ip: ip.v, prefix: +s };
+  }
+  const mk = parseIp(s);
+  if (mk.err) return { err: '遮罩的' + mk.err };
+  if (mk.wait) return { wait: '還沒打完：遮罩要 4 段' };
+  let p = prefixOf(mk.v);
+  if (p >= 0){
+    if (p === 0) return { ip: ip.v, prefix: 0, note: '0.0.0.0 當成遮罩 /0；如果你要的是萬用遮罩（單一主機），請改打 /32' };
+    return { ip: ip.v, prefix: p };
+  }
+  p = prefixOf((~mk.v) >>> 0);
+  if (p >= 0) return { ip: ip.v, prefix: p, note: `${s} 看成萬用遮罩，換算成 /${p}` };
+  return { err: `${s} 不是連續的遮罩` };
+}
+
+function calc(ip, p){
+  const mask = maskOf(p), wc = (~mask) >>> 0;
+  const net = (ip & mask) >>> 0, bc = (net | wc) >>> 0;
+  const size = 2 ** (32 - p);
+  let first, last, hosts, hasBc = true;
+  if (p <= 30){ first = net + 1; last = bc - 1; hosts = size - 2; }
+  else if (p === 31){ first = net; last = bc; hosts = 2; hasBc = false; }   // RFC 3021 點對點
+  else { first = net; last = net; hosts = 1; hasBc = false; }
+  const o = ip >>> 24;
+  const cls = o < 128 ? 'A' : o < 192 ? 'B' : o < 224 ? 'C' : o < 240 ? 'D' : 'E';
+  const subnets = p <= 24 ? (2 ** (24 - p)).toLocaleString('en-US') + ' C' : '1/' + 2 ** (p - 24) + ' C';
+  let role = 'host';
+  if (p <= 30){ if (ip === net) role = 'network'; else if (ip === bc) role = 'broadcast'; }
+  return { ip, p, mask, wc, net, bc, first, last, hosts, size, hasBc, cls, subnets, role, special: specialOf(ip) };
+}
+
+// 特殊用途位址（不是一般主機位址）
+function specialOf(ip){
+  const o = ip >>> 24;
+  if (o === 0) return '0.0.0.0/8「本網路」保留位址';
+  if (o === 127) return '回送位址（loopback，127.0.0.0/8）';
+  if (o >= 224 && o <= 239) return '多播位址（224.0.0.0/4）';
+  if (o >= 240) return '保留位址（240.0.0.0/4）';
+  if ((ip >>> 16) === ((169 << 8) | 254)) return '鏈路本地位址（169.254.0.0/16，DHCP 拿不到時自動配的）';
+  return '';
+}
+// ==CALC END==
+
+// ---------- 介面 ----------
+const KEY = 'ipcalc.v1';
+const EXAMPLE = parseIp('192.168.1.25').v;
+const S = { text: '', prefix: 24, classic: true, bin: true, theme: 'system' };
+try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
+let R = calc(EXAMPLE, S.prefix), isExample = true, isStale = false, V = {};
+let pfxBad = false;   // /數字欄正在編輯且不是 0～32 的整數
+
+const $ = id => document.getElementById(id);
+const $$ = q => Array.from(document.querySelectorAll(q));
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+
+function bitsHtml(n, p){
+  let h = '';
+  for (let i = 0; i < 32; i++){
+    if (i && i % 8 === 0) h += '<span class="dot">.</span>';
+    if (i === p && p > 0 && p < 32) h += '<span class="cut" title="網路／主機分界"></span>';
+    h += `<span class="${i < p ? 'n' : 'h'}">${(n >>> (31 - i)) & 1}</span>`;
+  }
+  return h;
+}
+
+function values(r){
+  return {
+    net: toIp(r.net), cidr: toIp(r.net) + '/' + r.p,
+    mask: toIp(r.mask), wc: toIp(r.wc), acl: toIp(r.net) + ' ' + toIp(r.wc),
+    first: toIp(r.first), last: toIp(r.last),
+    bc: r.hasBc ? toIp(r.bc) : (r.p === 31 ? '無（點對點）' : '無（單一位址）'),
+    hosts: r.hosts.toLocaleString('en-US'), cls: r.cls, subnets: r.subnets,
+  };
+}
+function roleText(r){
+  if (r.p === 31) return '/31 點對點：兩個位址都能用，沒有網段與廣播位址之分（RFC 3021）';
+  if (r.p === 32) return '/32 單一位址';
+  if (r.role === 'network') return '⚠ 你輸入的是網段位址本身，不能給主機用';
+  if (r.role === 'broadcast') return '⚠ 你輸入的是廣播位址，不能給主機用';
+  if (r.special) return `⚠ 這是${r.special}，不是一般主機位址`;
+  return `${toIp(r.ip)} 是可用的主機位址（這段第 ${(r.ip - r.net).toLocaleString('en-US')} 個）`;
+}
+
+function render(kind, msg){
+  V = values(R);
+  for (const el of $$('[data-o]')) el.textContent = V[el.dataset.o];
+  const rows = [['IP 位址', R.ip], ['Subnet mask', R.mask], ['Wildcard', R.wc], ['Network', R.net]];
+  $('binTable').innerHTML = '<table class="bt">' + rows.map(([l, n]) => `<tr><td>${l}</td><td class="bits">${bitsHtml(n, R.p)}</td></tr>`).join('') + '</table>'
+    + `<div class="legend"><span><span class="n">藍</span>＝網路位元（前 ${R.p} 個，ACL 會比對）</span><span><span class="h">橘</span>＝主機位元（萬用遮罩的 1，ACL 不管）</span><span>直線＝分界</span></div>`;
+  const role = $('role');
+  role.textContent = isExample ? '' : roleText(R);
+  role.classList.toggle('warn', (R.p <= 30 && R.role !== 'host') || !!R.special);
+  $('msg').textContent = msg; $('msg').className = 'msg ' + kind;
+  $('ip').classList.toggle('err', kind === 'err' && !pfxBad);
+  $('pfx').style.borderBottomColor = pfxBad ? 'var(--err)' : '';
+  const badge = $('badge');
+  badge.className = 'badge' + (isStale ? ' stale' : isExample ? ' ex' : '');
+  badge.textContent = isStale ? '輸入還不完整或有誤：下面是上一筆結果，不能複製' : isExample ? '範例：還沒輸入 IP，先用 192.168.1.25 示範' : '';
+  document.body.classList.toggle('is-stale', isStale);
+}
+
+function syncInputs(){
+  const act = document.activeElement;
+  if ($('ip') !== act) $('ip').value = S.text;
+  if ($('pfx') !== act) $('pfx').value = S.prefix;
+  $('rng').value = S.prefix;
+}
+
+function update(){
+  const r = parseInput(S.text);
+  let kind = '', msg = '';
+  if (r.empty){ R = calc(EXAMPLE, S.prefix); isExample = true; isStale = false; }
+  else if (r.err || r.wait){ kind = r.err ? 'err' : 'wait'; msg = r.err || r.wait; R = calc(R.ip, S.prefix); isStale = true; }
+  else {
+    if (r.prefix != null) S.prefix = r.prefix;
+    R = calc(r.ip, S.prefix); isExample = false; isStale = false;
+    if (r.note){ kind = 'note'; msg = r.note; }
+  }
+  if (pfxBad){ kind = 'err'; msg = '遮罩位元數要是 0～32 的整數'; isStale = true; }
+  syncInputs();
+  render(kind, msg);
+  save();
+}
+
+function setPrefix(n){
+  if (!Number.isFinite(n)) return;
+  n = Math.max(0, Math.min(32, Math.round(n)));
+  S.prefix = n; pfxBad = false;
+  const parts = S.text.trim().split(/\s*\/\s*|\s+/);
+  if (parts.length === 2){ S.text = parts[0] + '/' + n; $('ip').value = S.text; }   // 輸入框裡有寫遮罩（或打了 / 還沒接）就一起改
+  update();
+}
+
+$('ip').addEventListener('input', e => { S.text = e.target.value; update(); });
+$('rng').addEventListener('input', e => setPrefix(+e.target.value));
+$('pfx').addEventListener('input', e => {
+  const v = e.target.value;
+  if (/^\d{1,2}$/.test(v) && +v <= 32) setPrefix(+v);
+  else { pfxBad = true; update(); }
+});
+$('pfx').addEventListener('blur', () => { pfxBad = false; update(); });   // 離開欄位就回到目前有效的位元數
+
+async function copyText(text, el){
+  let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {}
+  if (!ok){
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = document.execCommand('copy'); } catch (e) {}
+    ta.remove();
+  }
+  if (ok){
+    el.classList.remove('copied'); void el.offsetWidth; el.classList.add('copied');
+    clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('copied'), 1500);
+  } else {
+    const range = document.createRange(); range.selectNodeContents(el.querySelector('code') || el);   // 按鈕只選數值，不含「複製」字樣
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range);
+    alert('沒辦法自動複製，已經幫你選取，請按 Ctrl+C');
+  }
+}
+
+document.addEventListener('click', e => {
+  const step = e.target.closest('[data-step]');
+  if (step){ setPrefix(S.prefix + Number(step.dataset.step)); return; }
+  if (isStale) return;
+  const btn = e.target.closest('[data-copy]');
+  if (btn){ copyText(V[btn.dataset.copy], btn); return; }
+  const val = e.target.closest('.val[data-o]');
+  if (val && !getSelection().toString()) copyText(V[val.dataset.o], val);
+});
+document.addEventListener('keydown', e => {
+  const val = e.target.closest && e.target.closest('.val[data-o]');
+  if (val && (e.key === 'Enter' || e.key === ' ') && !isStale){ e.preventDefault(); copyText(V[val.dataset.o], val); }
+});
+
+function applyOptions(){
+  document.body.classList.toggle('no-classic', !S.classic);
+  if (S.theme === 'system') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', S.theme);
+  $('optClassic').checked = S.classic;
+  $('optBin').checked = S.bin;
+  $('optTheme').value = S.theme;
+}
+$('optClassic').addEventListener('change', e => { S.classic = e.target.checked; applyOptions(); save(); });
+$('optBin').addEventListener('change', e => { S.bin = e.target.checked; $('bin').open = S.bin; save(); });
+$('optTheme').addEventListener('change', e => { S.theme = e.target.value; applyOptions(); save(); });
+
+applyOptions();
+$('bin').open = S.bin;   // 「預設展開」只在打開時套用，之後手動收合不會被其他設定重設
+update();
+$('ip').focus();
+</script>
+</body>
+</html>
